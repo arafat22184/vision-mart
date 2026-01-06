@@ -20,32 +20,54 @@ const useGenerateImage = () => {
     const prompt = formData.prompt;
     const width = formData.width || DEFAULT_VALUES.width;
     const height = formData.height || DEFAULT_VALUES.height;
-    const model = formData.model || DEFAULT_VALUES.model;
 
-    // We will push image URLs one by one
-    const urls: string[] = [];
+    // Generate 4 images with different seeds
+    const imagePromises = [];
 
-    // Loop 9 times, between each request
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       const seed = Math.floor(Math.random() * 100000);
 
-      const url = `https://image.pollinations.ai/prompt/${prompt}?width=${width}&height=${height}&seed=${seed}&model=${model}`;
+      const promise = fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          width,
+          height,
+          seed,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Failed to generate image");
+          }
+          return res.json();
+        })
+        .then((data) => data.imageUrl)
+        .catch((err) => {
+          console.error("Error generating image:", err);
+          setError(err.message);
+          return null;
+        });
 
-      try {
-        const response = await fetch(url);
-        console.log(response);
-
-        if (response.ok) {
-          urls.push(url);
-        }
-      } catch (err) {
-        // urls.push(null);
-        console.log(err);
-      }
-
-      // Update state after each image
-      setImageUrls([...urls]);
+      imagePromises.push(promise);
     }
+
+    // Wait for all images to complete
+    const results = await Promise.all(imagePromises);
+
+    // Filter out null values (failed requests)
+    const successfulImages = results.filter((url) => url !== null) as string[];
+
+    setImageUrls(successfulImages);
+
+    if (successfulImages.length === 0) {
+      setError("Failed to generate any images. Please try again.");
+    }
+
     setLoading(false);
   };
 
