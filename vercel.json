@@ -6,11 +6,6 @@
   "regions": [
     "iad1"
   ],
-  "env": {
-    "MONGODB_URI": "@mongodb-uri",
-    "AUTH_SECRET": "@auth-secret",
-    "NEXTAUTH_URL": "@nextauth-url"
-  },
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
